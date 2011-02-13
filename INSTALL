@@ -1,0 +1,61 @@
+*** f0salience: a vamp plugin to display the F0 salience ***
+
+There should be a fairly general Makefile for Unix systems. The plugin
+has been tested on Linux and MacOsX, and should work rather well on
+these systems.
+
+A. Dependencies
+
+In order for this plugin to work and compile, you need these libraries:
+    * the Vamp plug-in SDK from http://www.vamp-plugins.org/develop.html
+    * ATLAS
+    * FFTW
+
+On Ubuntu, you should install the following packages:
+    * libatlas-base-dev (3.6.0)
+    * libfftw3-dev (3.2.2)
+    * vamp-plugin-sdk (2.1)
+
+The Vamp plug-in SDK can be freely downloaded, and is fairly easy to
+compile and run. Note that I used the 2.2 version of the SDK. Note
+also that I only experienced this plug-in on 32 bits platforms, and
+more precisely on MacOsX, architecture i386, and Linux Ubuntu 10.04.
+
+The BLAS library is necessary, as we compute matrix products in this
+program. If you do not wish to use that library, it may be possible to 
+use any other matrix product implementation you wish, such as a direct
+implemenetation. However, we strongly recommend to use an optimized
+library, as the core algorithm uses a lot of these calls to matrix
+products.
+
+The FFTW library is also necessary, but only as a convenience. It could
+easily be replaced with a direct Fourier implementation. This will
+only affect the initial call to the plugin.
+
+B. Installation process
+
+In an ideal world, where everyone uses a Unix system, you would only 
+need to type:
+    make -f Makefile.[macosx|linux]
+    cp f0salience.[dylib|so] $PATH_TO_VAMP_PLUGIN
+
+where $PATH_TO_VAMP_PLUGIN is the path where the programs you use
+know where to find the Vamp plug-ins and the extension depends on
+the target machine (resp. MacOsX or Linux).
+
+Also copy the category file to your Vamp plug-in path:
+    cp f0salience.cat $PATH_TO_VAMP_PLUGIN
+
+However, before you get there, you might need to edit the provided 
+Makefile such that the program knows where to find the libraries it
+needs. Have a look at it, there are some comments that will guide
+you through its correction.
+
+For Windows, hopefully some compile DLL will one day pop-out from the
+web. Unfortunately, it has always seemed way more complicated to 
+compile under Windows, probably because I do not use Windows much 
+myself. The lack of a compiled Windows version of this plug-in is an
+issue, and I would be glad if someone more at ease with that platform
+would help by providing the compiled DLL binary. Thanks in advance!
+
+5.11.2010 Jean-Louis Durrieu

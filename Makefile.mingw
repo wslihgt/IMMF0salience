@@ -1,0 +1,39 @@
+# Edit this to the base name of your plugin library
+#
+PLUGIN_LIBRARY_NAME = f0salience
+
+# Edit this to list one .o file for each .cpp file in your plugin project
+#
+PLUGIN_CODE_OBJECTS = f0Salience.o plugins.o
+
+# Edit this to the location of the Vamp plugin SDK, relative to your
+# project directory
+#
+VAMP_SDK_DIR = $(HOME)/progs/toolbox/crossCompileWindows/vamp-plugin-sdk-2.2/
+SNDFILE_INCLUDE_DIR = $(HOME)/.localMingw/include/
+# ATLAS_INCLUDE_DIR = $(HOME)/.localMingw/include/
+ATLAS_INCLUDE_DIR = /media/F860657460653A90/cygwin/usr/local/atlas/include/
+FFTW_INCLUDE_DIR = $(HOME)/.localMingw/include/
+#CYGWIN_INCLUDE_DIR = /media/F860657460653A90/cygwin/usr/include/
+
+#ATLAS_LIB_DIR = $(HOME)/.localMingw/lib/
+ATLAS_LIB_DIR = /media/F860657460653A90/cygwin/usr/local/atlas/lib/
+FFTW_LIB_DIR = $(HOME)/.localMingw/lib/
+
+##  Uncomment these for a cross-compile from Linux to Windows using MinGW:
+
+CXX = i586-mingw32msvc-g++
+CXXFLAGS = -I$(VAMP_SDK_DIR) -I$(ATLAS_INCLUDE_DIR) -I$(FFTW_INCLUDE_DIR) -Wall
+PLUGIN_EXT = .dll
+PLUGIN = $(PLUGIN_LIBRARY_NAME)$(PLUGIN_EXT)
+#LDFLAGS = --static-libgcc -Wl,-soname=$(PLUGIN) -shared $(VAMP_SDK_DIR)/libvamp-sdk.a -L$(ATLAS_LIB_DIR) -lcblas -latlas -L$(FFTW_LIB_DIR) -lfftw3 -lm
+LDFLAGS = --static-libgcc -Wl,-soname=$(PLUGIN) -shared $(VAMP_SDK_DIR)/libvamp-sdk.a -L$(ATLAS_LIB_DIR) -lcblas -latlas -L$(FFTW_LIB_DIR) -lfftw3 -lm
+
+##  All of the above
+
+$(PLUGIN): $(PLUGIN_CODE_OBJECTS)
+	   $(CXX) -o $@ $^ $(LDFLAGS)
+
+clean:
+	rm -f *.o
+

@@ -1,0 +1,3 @@
+DYLD_LIBRARY_PATH=../vamp-plugin-sdk-2.2/ VAMP_PATH=. ../vamp-plugin-tester-1.0/vamp-plugin-tester -a
+
+VAMP_PATH=. /Applications/media/Sonic\ Visualiser.app/Contents/MacOS/Sonic\ Visualiser

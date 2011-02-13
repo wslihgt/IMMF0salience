@@ -1,0 +1,140 @@
+*** f0salience: a vamp plugin to display the F0 salience ***
+
+Jean-Louis Durrieu, EPFL, 2010.
+
+I. Description
+
+This vamp plug-in, 'f0Salience', is to be used with vamp hosts
+(but I mainly had sonic-visualiser in mind). It implements the
+F0 salience function estimation derived in [Durrieu et al, 2010].
+
+This file first describes how one can install the plug-in, 
+and then explains in further detail how one can use it, within
+sonic-visualiser.
+
+II. Installation
+
+See INSTALL file for details on the installation process.
+
+You can also find the compile binary for MacOsX (.dylib) which
+was compiled under MacOsX 10.6, for an architecture of 32 bits, 
+and for Windows (.dll), compiled using MingW, under Ubuntu 10.04,
+in order to work on the provided binary version of Sonic Visualiser,
+on the website (as of today, for 32 bits architectures). A compiled
+library for Linux (.so) is also provided, but it would seem that it can
+only be dynamically linked for now. There is little chance that it will
+therefore work somewhere else than where it was compiled.
+
+Place these compiled files wherever your Vamp host (s.a. Sonic Visualiser) 
+can find them, for instance (http://www.vamp-plugins.org/download.html):
+    MacOsX:  $HOME/Library/Audio/Plug-Ins/Vamp or /Library/Audio/Plug-Ins/Vamp
+    Linux:   $HOME/vamp                        or /usr/local/lib/vamp
+    Windows: "C:\Program Files\Vamp Plugins"
+
+III. Usage
+
+Start Sonic Visualiser (SV). Load an audio file.
+
+The plug-in is called 'F0 Salience'. There are, for now, two types of ouputs:
+    * the f0 salience, which shows the estimated energies for each of 
+      the F0s, 
+    * the spectral envelopes that are estimated. Note that the latter
+      is only (really) meaningful in the case where there is only one
+      active audio source in each frame, e.g. with speech signals with
+      one speaker, one solo instrument, etc.
+
+When you start it, the plug-in will ask some parameters:
+    Program: 
+        Some preset parameters have been stored in these programs.
+        Following these programs, with the given window size and with
+        a sampling rate of 44100Hz will lead the program to load 
+        a pre-computed basis for WF0, resulting in an (almost) 
+        instantaneous initialisation. 
+    
+    Minimum F0: 
+        Maximum fundamental frequency (F0) for the glottal source spectra
+        matrix.
+
+    Maximum F0:
+        Minimum F0 for the glottal source spectra matrix.
+
+    Step between two notes:
+        This step 'stepnote' is such that there are 'stepnote' F0s 
+        per semitone. 
+
+    Open Coefficient:
+        A parameter for the chosen glottal source (KLGLOTT88).
+
+    Number of elementary filters:
+        This value sets the number of elementary filters in the matrix
+        of the filter part.
+
+    Overlap of elementary filters:
+        This value tells how much 
+
+    Max. Iterations:
+        The maximum number of iterations for the estimation algorithm.
+
+The output descriptor is a vector of amplitudes associated with each of
+the F0 values, given by the user. This results in a visualisation which 
+shows the F0 salience within the audio file.
+
+Several remarks need to be noted:
+    * If the user does not provide the correct range of F0s, such that 
+some instruments have F0s outside of that range, then there is a high 
+probability that some spurious F0 at a lower octave obtains high values.
+
+    * The computation may take a while, especially on small configurations,
+because it is not optimized (although using the BLAS library). 
+
+    * A good way of visualizing the F0 salience is to use the linear scale,
+with normalization of the columns. Using the log scale, you will see how
+much "noise" is actually estimated. 
+
+    * Inspecting the linear scale visualisation, without normalisation,
+it is highly possible that you won't be able to see much on the screen:
+the algorithm, based on Non-negative Matrix Factorization (NMF), does not
+prevent values to decrease very low (near 0) or increase too much. 
+
+    * Note that the underlying model, which you can read in 
+[Durrieu et al., 2010], is better designed to spot the "lead instrument". 
+You may therefore experience that the visualisation does emphasize this
+specific audio source (especially when normalizing the columns).
+
+This plug-in was tested under MacOsX 10.6 (32 bits version) and 
+Linux Ubuntu 10.04 (32 bits also). It seems to work pretty much
+without bugs, except that the vamp-crew provided vamp-plugin-tester,
+under MacOsX, told me there were some errors. I could not track these
+yet, but would be pleased to hear about any problem with this plugin.
+
+IV. Copyright/Licence
+
+Since we used several open source libraries, especially FFTW, it seems
+that the licence we should put on is the following:
+GPL, see the gpl-3.0.txt file or on 
+http://www.gnu.org/licenses/gpl-3.0.txt.
+
+We are not aware of any legal issues with our release, but we would be 
+glad to hear about anything we should be concerned about. Since this plug-in
+implements some publicly published algorithm, there should be no patent
+infringed. 
+
+V. Known bugs
+
+This program is unfortunately not completely safe to use... Well, 
+hopefully nothing harmful for your computer. We have only noticed the 
+following issues while using this plug-in with Sonic Visualiser (SV).
+
+Linux: we have noticed that sometimes, for some unknown reason, SV would
+crash with a segmentation fault error message. This could come from the
+plug-in, or maybe from some bug from SV. 
+
+MacOsX: it seems that some choices of parameters make SV crash. We still 
+do not know how to solve this problem. 
+
+These bugs have so far not been solved, and the only work-around we know
+is to relaunch SV, and retry the operations. It would seem that theses
+bugs are not completely predictable, hence a difficulty to find why they 
+happen. It is often safer to let the waveform of the song to analyze to 
+completely load, and to use the default parameters/programs which come 
+with the plug-in, instead of modifying the parameters.
