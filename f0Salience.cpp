@@ -51,7 +51,8 @@ F0Salience::F0Salience(float inputSampleRate) :
   m_numberOfGamma(50),
   m_overlapGamma(.75),
   m_maxIterations(50),
-  m_thresholdEnergy(30.0)
+  m_thresholdEnergy(30.0),
+  m_computeBasis(0)
 {
   m_inputSampleRate = inputSampleRate;
 }
@@ -526,7 +527,7 @@ F0Salience::genHannBasis()
 
   // the center for each basis function is one of the bins of the
   // frequency range
-  size_t center;
+  int center;// size_t center; // change this to int center; //?
   
   for(f=0; f<3*m_numberBins; f++)
     {
