@@ -231,11 +231,11 @@ F0Salience::getParameterDescriptors() const
   maxIter.name = "Max. Iterations";
   maxIter.description = "The maximum number of iterations for the estimation algorithm.";
   maxIter.unit = "";
-  maxIter.minValue = 5.0;
-  maxIter.maxValue = 1000.0;
-  maxIter.defaultValue = 50.0;
+  maxIter.minValue = 5;
+  maxIter.maxValue = 1000;
+  maxIter.defaultValue = 50;
   maxIter.isQuantized = true;
-  maxIter.quantizeStep = 1.0;
+  maxIter.quantizeStep = 1;
   list.push_back(maxIter);
 
   ParameterDescriptor thresDisp;
