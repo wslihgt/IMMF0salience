@@ -14,11 +14,13 @@ VAMP_SDK_DIR = /usr/lib/
 ##  Uncomment these for Linux using the standard tools:
 
 CXXFLAGS = -I$(VAMP_SDK_DIR) -Wall -fPIC 
+## CXXFLAGS = -g -I$(VAMP_SDK_DIR) -Wall -fPIC 
 PLUGIN_EXT = .64.so
 # PLUGIN_EXT = .a
 PLUGIN = $(PLUGIN_LIBRARY_NAME)$(PLUGIN_EXT)
 #LDFLAGS = -shared -Wl,-soname=$(PLUGIN) $(VAMP_SDK_DIR)/libvamp-sdk.a -Wl,--version-script=vamp-plugin.map -lcblas -latlas -lfftw3 -lm
 LDFLAGS = -shared -Wl,-Bdynamic -Wl,-soname=$(PLUGIN) $(VAMP_SDK_DIR)/libvamp-sdk.a -Wl,--version-script=vamp-plugin.map -lcblas -latlas -lfftw3 -lm
+## LDFLAGS = -g -shared -Wl,-Bdynamic -Wl,-soname=$(PLUGIN) $(VAMP_SDK_DIR)/libvamp-sdk.a -Wl,--version-script=vamp-plugin.map -lcblas -latlas -lfftw3 -lm
 
 
 ##  All of the above

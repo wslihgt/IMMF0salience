@@ -205,7 +205,7 @@ F0Salience::getParameterDescriptors() const
   
   ParameterDescriptor nGamma;
   nGamma.identifier = "numberOfGamma";
-  nGamma.name = "Number of elemetary filters";
+  nGamma.name = "Number of elementary filters";
   nGamma.description = "The number of elementary filters for the filter decomposition.";
   nGamma.unit = "";
   nGamma.minValue = 4.0;
@@ -217,7 +217,7 @@ F0Salience::getParameterDescriptors() const
   
   ParameterDescriptor overlapGamma;
   overlapGamma.identifier = "overlapGamma";
-  overlapGamma.name = "Overlap of elemetary filters";
+  overlapGamma.name = "Overlap of elementary filters";
   overlapGamma.description = "Overlapping rate of the elementary filters.";
   overlapGamma.unit = "";
   overlapGamma.minValue = .25;
