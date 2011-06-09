@@ -30,6 +30,10 @@ can find them, for instance (http://www.vamp-plugins.org/download.html):
     MacOsX:  $HOME/Library/Audio/Plug-Ins/Vamp or /Library/Audio/Plug-Ins/Vamp
     Linux:   $HOME/vamp                        or /usr/local/lib/vamp
     Windows: "C:\Program Files\Vamp Plugins"
+    Windows 64 bits: "C:\Program Files (x86)\Vamp Plugins" 
+        (Note: for Win 64, we only tested the 32bits version of 
+         SonicVisualiser, since it is the only one available at
+         http://www.sonicvisualiser.org)
 
 III. Usage
 
