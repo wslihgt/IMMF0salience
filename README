@@ -16,14 +16,23 @@ II. Installation
 
 See INSTALL file for details on the installation process.
 
-You can also find the compile binary for MacOsX (.dylib) which
-was compiled under MacOsX 10.6, for an architecture of 32 bits, 
-and for Windows (.dll), compiled using MingW, under Ubuntu 10.04,
-in order to work on the provided binary version of Sonic Visualiser,
-on the website (as of today, for 32 bits architectures). A compiled
-library for Linux (.so) is also provided, but it would seem that it can
-only be dynamically linked for now. There is little chance that it will
-therefore work somewhere else than where it was compiled.
+For the binary versions:
+    MacOsX:  
+        You can find the compiled binary for MacOsX (.dylib) which
+        was compiled under MacOsX 10.6, for an architecture of 32 bits. 
+    Linux:
+        A compiled library for Linux (.so) is also provided, but it 
+        would seem that it can only be dynamically linked for now. 
+        There is little chance that it will therefore work somewhere else 
+        than where it was compiled: we advice the users to compile the 
+        plug-in directly from the source.
+    Windows: 
+        You can also find the compiled binary for Windows 32 bits (.dll), 
+        compiled using MingW, under Ubuntu 10.04. There is no 64 bits
+        version, for now, but neither is there a win 64 bit version
+        of Sonic-Visualiser. You can however use the 32 bit version 
+        under 64 bits (check the www.sonicvisualiser.org website for more
+        details on that).
 
 Place these compiled files wherever your Vamp host (s.a. Sonic Visualiser) 
 can find them, for instance (http://www.vamp-plugins.org/download.html):
@@ -142,3 +151,14 @@ bugs are not completely predictable, hence a difficulty to find why they
 happen. It is often safer to let the waveform of the song to analyze to 
 completely load, and to use the default parameters/programs which come 
 with the plug-in, instead of modifying the parameters.
+
+
+VI. References
+
+[Durrieu et al., 2010] J.-L. Durrieu, B. David and G. Richard, "A 
+musically motivated mid-level representation for pitch estimation and 
+musical audio source separation", accepted to the IEEE Journal on Selected 
+Topics on Signal Processing, Music Signal Processing (October 2011 - first 
+submission 29th Sept. 2010, revised 2nd Feb. 2011). 
+Web: http://www.durrieu.ch/research/jstsp2010.html
+
