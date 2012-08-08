@@ -1,0 +1,39 @@
+# Edit this to the base name of your plugin library
+#
+PLUGIN_LIBRARY_NAME = f0salience
+
+# Edit this to list one .o file for each .cpp file in your plugin project
+#
+PLUGIN_CODE_OBJECTS = f0Salience.o plugins.o
+
+# Edit this to the location of the Vamp plugin SDK, relative to your
+# project directory
+#
+
+# Replace this by your own vamp plugin directory:
+# VAMP_SDK_DIR = ../vamp-plugin-sdk-2.2
+VAMP_SDK_DIR = $(HOME)/work/svn/PersoDurrieu/programmation/CPP/vamp/vamp-plugin-sdk-2.2
+
+#CXXFLAGS = -g -I$(VAMP_SDK_DIR) -arch i386 -m32 -Wall -fPIC -L/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/ -llapack -lcblas -latlas -lm -I/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/Headers/ `pkg-config --cflags fftw3 --libs fftw3` -lm
+CXXFLAGS = -I$(VAMP_SDK_DIR) -arch x86_64 -m64 -Wall -fPIC -I/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/Headers/ -I/users/jeanlouis/include/
+PLUGIN_EXT = .64.dylib
+PLUGIN = $(PLUGIN_LIBRARY_NAME)$(PLUGIN_EXT)
+#LDFLAGS = -g -dynamiclib -arch i386 -m32 -install_name $(PLUGIN) $(VAMP_SDK_DIR)/libvamp-sdk.a -exported_symbols_list vamp-plugin.list -L/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/ -llapack -lcblas -latlas `pkg-config --cflags fftw3 --libs fftw3` -lm
+LDFLAGS = -dynamiclib -arch x86_64 -m64 -install_name $(PLUGIN) $(VAMP_SDK_DIR)/libvamp-sdk.64.a -exported_symbols_list vamp-plugin.list -L/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/ -lcblas -latlas -I/users/jeanlouis/include/ -L/users/jeanlouis/lib/ -lfftw3 -lm
+
+
+##  Uncomment these for an OS/X universal binary using command-line tools:
+
+# CXXFLAGS = -isysroot /Developer/SDKs/MacOSX10.4u.sdk -arch i386 -arch ppc -I$(VAMP_SDK_DIR) -Wall -fPIC
+# PLUGIN_EXT = .dylib
+# PLUGIN = $(PLUGIN_LIBRARY_NAME)$(PLUGIN_EXT)
+# LDFLAGS = -dynamiclib -install_name $(PLUGIN) $(VAMP_SDK_DIR)/libvamp-sdk.a -exported_symbols_list vamp-plugin.list
+
+##  All of the above
+
+$(PLUGIN): $(PLUGIN_CODE_OBJECTS)
+	   $(CXX) -o $@ $^ $(LDFLAGS)
+
+clean:
+	rm -f *.o
+
