@@ -524,7 +524,7 @@ F0Salience::genHannBasis()
   // making an (oversized) prototype window, to make the assignment easier.
   float *bigWindow;
   bigWindow = new float [3*m_numberBins];
-
+  
   // the center for each basis function is one of the bins of the
   // frequency range
   int center;// size_t center; // change this to int center; //?
