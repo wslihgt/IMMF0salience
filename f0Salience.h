@@ -93,7 +93,9 @@ class F0Salience : public Vamp::Plugin
   size_t m_stepSize;
   size_t m_blockSize;
   float m_inputSampleRate;
+  size_t m_nbChannels; // added here, but with min/max = 1 maybe dealt in SV directly
   size_t m_numberBins;
+  size_t m_nbAccumulatedFrames; // Activates the computation as soon as there are enough frames in the matrix
   size_t m_numberFrames; // for later implementation: stacking the frames, working on matrices, instead of vector.
   
   // some variables for the design of the basis matrix for the source WF0
@@ -106,6 +108,7 @@ class F0Salience : public Vamp::Plugin
   float m_overlapGamma;
   size_t m_maxIterations;
   float m_thresholdEnergy;
+  FeatureSet m_featureSet;
   
   // basis matrices
   float *m_WF0;    // for the source part
