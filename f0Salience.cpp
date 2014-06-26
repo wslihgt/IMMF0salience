@@ -43,7 +43,7 @@ F0Salience::F0Salience(float inputSampleRate) :
   m_stepSize(0),
   m_blockSize(0),
   m_nbAccumulatedFrames(0),
-  m_numberFrames(10),
+  m_numberFrames(1),
   m_fmin(100.0),
   m_fmax(800.0),
   m_stepnote(8.0),
@@ -424,7 +424,12 @@ F0Salience::getOutputDescriptors() const
   d.binNames = f0values;
   d.hasKnownExtents = false;
   d.isQuantized = false;
-  d.sampleType = OutputDescriptor::OneSamplePerStep; // VariableSampleRate;// OneSamplePerStep;
+  // Found from NNLSchroma plugin code that this leads to correct
+  // visualization output, from getRemainingFrames:
+  d.sampleType = OutputDescriptor::FixedSampleRate;
+  d.sampleRate = (m_stepSize == 0)? 
+    m_inputSampleRate / 2048 : 
+    m_inputSampleRate / m_stepSize; 
   d.hasDuration = false;
   list.push_back(d);
   
@@ -899,15 +904,16 @@ F0Salience::updateHmatrices()
 {
   // just for debugging... 
   // cout << "we are here updateHmat" << endl;
-  float eps = 1.0e-20;// 0.00000000000000000000000001;
+  float eps = 1.0e-8;// 0.00000000000000000000000001;
   size_t niter, n, f;
   // all the following matrices are useful for use with cblas
   float *sF0Hat, *sPhiHat, *tmpNum, *tmpDen, 
     *numeraHF0, *denomiHF0, *numeraHG, *denomiHG, *maxGamma;
 
-  size_t nbMus=20;
+  size_t nbMus=1;
   float *WM, *HM, *sM; // accompaniment part
   float *numHM, *denHM, *numWM, *denWM;
+  float sumWM;
   
   float *sXHat;
 
@@ -951,19 +957,19 @@ F0Salience::updateHmatrices()
 		  m_numberFrames, m_numberBins, m_numberOfF0, 1.0,
 		  m_HF0, m_numberOfF0, m_WF0, m_numberBins, 0.0, 
 		  sF0Hat, m_numberBins);
-      cout << "ok1"<<endl;
+      // cout << "ok1"<<endl;
       /* sPhiHat = m_HGAMMA m_WGAMMA*/
       cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
 		  m_numberFrames, m_numberBins, m_numberOfGamma, 1.0,
 		  m_HGAMMA, m_numberOfGamma, m_WGAMMA, m_numberBins, 0.0,
 		  sPhiHat, m_numberBins);
-      cout << "ok2"<<endl;
+      // cout << "ok2"<<endl;
       /* sF0Hat = m_HF0 m_WF0 (matrix product) */
       cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
 		  m_numberFrames, m_numberBins, nbMus, 1.0,
 		  HM, nbMus, WM, m_numberBins, 0.0, 
 		  sM, m_numberBins);
-      cout << "ok3"<<endl;
+      // cout << "ok3"<<endl;
       // update HF0:
       for (n=0; n<m_numberFrames; n++)
 	{
@@ -1009,13 +1015,13 @@ F0Salience::updateHmatrices()
 		  m_numberOfF0, m_numberFrames, m_numberBins, 1.0,
 		  m_WF0, m_numberBins, tmpNum, m_numberFrames, 0.0,
 		  numeraHF0, m_numberFrames);
-      cout << "ok4"<<endl;
+      // cout << "ok4"<<endl;
       /* denomiHF0 = m_WF0 tmpDen */
       cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
 		  m_numberOfF0, m_numberFrames, m_numberBins, 1.0,
 		  m_WF0, m_numberBins, tmpDen, m_numberFrames, 0.0,
 		  denomiHF0, m_numberFrames);
-      cout << "ok5"<<endl;
+      // cout << "ok5"<<endl;
       for (n=0; n<m_numberFrames; n++)
 	{
 	  for(f=0; f<m_numberOfF0; f++)
@@ -1032,7 +1038,7 @@ F0Salience::updateHmatrices()
 		  m_numberFrames, m_numberBins, m_numberOfF0, 1.0,
 		  m_HF0, m_numberOfF0, m_WF0, m_numberBins, 0.0, 
 		  sF0Hat, m_numberBins);
-      cout << "ok6"<<endl;
+      // cout << "ok6"<<endl;
       
       // update HGAMMA:
       /* equations analogous to above ones */
@@ -1062,12 +1068,12 @@ F0Salience::updateHmatrices()
 		  m_numberOfGamma, m_numberFrames, m_numberBins, 1.0,
 		  m_WGAMMA, m_numberBins, tmpNum, m_numberFrames, 0.0,
 		  numeraHG, m_numberFrames);
-      cout << "ok8"<<endl;
+      // cout << "ok8"<<endl;
       cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
 		  m_numberOfGamma, m_numberFrames, m_numberBins, 1.0,
 		  m_WGAMMA, m_numberBins, tmpDen, m_numberFrames, 0.0,
 		  denomiHG, m_numberFrames);
-      cout << "ok8"<<endl;
+      // cout << "ok8"<<endl;
       for (n=0; n<m_numberFrames; n++)
 	{
 	  maxGamma[n] = 0;
@@ -1116,7 +1122,7 @@ F0Salience::updateHmatrices()
 		  m_numberFrames, m_numberBins, m_numberOfGamma, 1.0,
 		  m_HGAMMA, m_numberOfGamma, m_WGAMMA, m_numberBins, 0.0,
 		  sPhiHat, m_numberBins);
-      cout << "ok9"<<endl;
+      // cout << "ok9"<<endl;
 
       // Update accompaniment elements
       for (n=0; n<m_numberFrames; n++)
@@ -1146,12 +1152,12 @@ F0Salience::updateHmatrices()
 		  nbMus, m_numberFrames, m_numberBins, 1.0,
 		  WM, m_numberBins, tmpNum, m_numberFrames, 0.0,
 		  numHM, m_numberFrames);
-      cout << "ok10"<<endl;
+      // cout << "ok10"<<endl;
       cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
 		  nbMus, m_numberFrames, m_numberBins, 1.0,
 		  WM, m_numberBins, tmpDen, m_numberFrames, 0.0,
 		  denHM, m_numberFrames);
-      cout << "ok11"<<endl;
+      // cout << "ok11"<<endl;
       for (n=0; n<m_numberFrames; n++)
 	{
 	  for(f=0; f<nbMus; f++)
@@ -1166,20 +1172,32 @@ F0Salience::updateHmatrices()
 		  m_numberBins, nbMus, m_numberFrames, 1.0,
 		  tmpNum, m_numberFrames, HM, nbMus, 0.0,
 		  numWM, nbMus);
-      cout << "ok12"<<endl;
+      // cout << "ok12"<<endl;
       cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
 		  m_numberBins, nbMus, m_numberFrames, 1.0,
 		  tmpDen, m_numberFrames, HM, nbMus, 0.0,
 		  denWM, nbMus);
-      cout << "ok13"<<endl;
-      for (n=0; n<m_numberBins; n++)
+      // cout << "ok13"<<endl;
+      for (f=0; f<nbMus; f++)
 	{
-	  for(f=0; f<nbMus; f++)
+	  sumWM = 0;
+	  for (n=0; n<m_numberBins; n++)
 	    {
 	      WM[f*m_numberBins+n] = WM[f*m_numberBins+n] *
 		(numWM[n*nbMus+f]) / 
 		max(denWM[n*nbMus+f], eps);
+	      sumWM += WM[f*m_numberBins+n];
 	    }
+	  // actually summing them all, across frequencies, because
+	  // it is too general, otherwise: for m_numberFrames=1, WM could be
+	  // equal to mSX which is not useful for us...
+	  if(m_numberFrames<=2*nbMus)
+	  {
+	    for (n=0; n<m_numberBins; n++)
+	      {
+		WM[f*m_numberBins+n] = sumWM / m_numberBins;
+	      }
+	  }
 	}
       
     }
@@ -1223,6 +1241,7 @@ F0Salience::process(const float *const *inputBuffers,
     {
       // initialize the power spectrum matrix
       m_SX = new float [m_numberFrames * m_numberBins];
+      // m_featureSet = FeatureSet();
     }
   
   /*
@@ -1273,13 +1292,24 @@ F0Salience::process(const float *const *inputBuffers,
   
   if(m_nbAccumulatedFrames == m_numberFrames)
     { 
+      // DEBUG
+//       cout << "POWER SPECTRUM MATRIX" <<endl;
+//       for (nn=0; nn<m_numberBins; nn++)
+// 	{
+// 	  for(nf=0; nf<m_numberFrames; nf++)
+// 	    {
+// 	      cout << m_SX[nf * m_numberBins + nn] << " " ;
+// 	    }
+// 	  cout << endl;
+// 	}
+//       cout << "END POWER SPEC" <<endl ; 
       // Compute the decomposition when the matrix is full:
       // initializing:
       if (sumOfFramePower > 0.0)
 	{
 	  frameIsNotNull = 1.0;
 	}
-      cout << "initializing H matrices:" << endl;
+      // cout << "initializing H matrices:" << endl;
       for(nf=0; nf<m_numberFrames; nf++)
 	{
 	  for(nn=0; nn<m_numberOfGamma; nn++)
@@ -1317,7 +1347,7 @@ F0Salience::process(const float *const *inputBuffers,
 					     lrintf(m_inputSampleRate));
 	  f0salienceFeat.values.reserve(m_numberOfF0);
 	  
-	  float maxInHF0 = *max_element(m_HF0,m_HF0+m_numberOfF0);
+	  // float maxInHF0 = *max_element(m_HF0,m_HF0+m_numberOfF0);
 	  float targetMinInHF0 = 0.; // DEBUG // invdb((db(maxInHF0)-m_thresholdEnergy));
 	  
 	  for(nn=0; nn<m_numberOfF0; nn++) 
@@ -1354,7 +1384,7 @@ F0Salience::process(const float *const *inputBuffers,
       // should we also reset the content of matrix? 
     } // end of if m_nbAccumulatedFrames == m_numberFrames
 
-  return FeatureSet(); // return the featureSet, in any case (even if empty, no prob with this?)
+  return FeatureSet();//m_featureSet; // return the featureSet, in any case (even if empty, no prob with this?)
 }
 
 F0Salience::FeatureSet
