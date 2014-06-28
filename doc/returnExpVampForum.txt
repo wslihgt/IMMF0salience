@@ -1,0 +1,96 @@
+=========================================================
+OutputDescriptor attributes for matrix processing plug-in
+=========================================================
+
+Hi all,
+
+Some time ago, I started to develop a plug-in allowing to visualize the fundamental frequency f0 salience as I developed it during my PhD thesis: https://github.com/wslihgt/IMMF0salience. I'd like to share when my fellow plug-in developer one part of my experience that took me some time to understand: getting the right attributes for the OutputDescriptor of a visualization plug-in. 
+
+Problem
+=======
+The algorithm to compute that F0 salience that is the core of my plug-in is based on **non-negative matrix factorization (NMF)**. For this to work in an "optimal" way, it would be better to load all the frequency-domain frames, and process them all at once. As it were, it is "necessary" to some extend, in order to capture long term tendencies. Using BLAS or other libraries, it could also be computationally a bit more efficient.
+
+I actually managed to make this work the way I wanted! That was however not so straight-forward from the documentation, so I thought I could post a little word on my experience...
+
+Implementation, failures, work around
+=====================================
+At first, my implementation only worked as follows: at each frame, the plug-in calls the [tt]process[/tt] method, in which I compute the updates for the matrices in my model only for that frame.  In short: I had to make the processing steps in [tt]process[/tt], and output each time the features from the [tt]FeatureSet[/tt] at the end. 
+
+As afore-mentioned, I want to load several frames into a "matrix", in [tt]process[/tt], and then as soon as the matrix is filled (for now fixing it to a fixed number of frames to process each time), I can update the matrices, for all the stored frames at once. Once this is done, I put the columns of the matrix, each of which corresponding to a frame, into the [tt]FeatureSet[/tt] map, and return that [tt]FeatureSet[/tt] and... 
+
+... and in my first attempts, I got nothing. Well, not exactly, it seems that the plug-in returned the last feature that was computed, the last column of the processed matrix. So for instance, if I decide to process 2 frames in one go, I only get the result for one frame out of two. For 3 frames, only one out of 3, and so forth...
+
+At first, I thought I did not implement it correctly, especially not as intended, with respect to the process and getRemainingFrames methods. But in the end I found out, thanks to reading through the code of NNLSchroma (http://www.isophonics.net/nnls-chroma), that I gave the wrong attributes to the corresponding OutputDescriptor. In the [tt]getOutputDescriptors[/tt] method, I indeed had something like:
+[code]
+  OutputDescriptor d;
+  d.identifier = "f0salience";
+  d.name = "Salience of F0s.";
+  d.description = "This representation should emphasize the salience of the different F0s in the signal.";
+  d.unit = "";
+  d.hasFixedBinCount = true;
+  if (m_blockSize == 0) {
+    // Just so as not to return "1". This is the bin count that
+    // would result from a block size of 1024, which is a likely
+    // default -- but the host should always set the block size
+    // before querying the bin count for certain.
+    d.binCount = 513;
+  } else {
+    d.binCount = m_numberOfF0; 
+  } 
+  d.binNames = f0values;
+  d.hasKnownExtents = false;
+  d.isQuantized = false;
+  d.sampleType = OutputDescriptor::OneSamplePerStep; 
+  d.hasDuration = false;
+[/code]
+
+The key issue seems to be the [tt]sampleType[/tt] attribute, along with the associated [tt]sampleRate[/tt]. There are various possibilities, whose differences, to my taste, were difficult to grasp just from the provided guide... The documetation of Plugin.h is also not too helpful on this aspect. 
+
+The original trial was to put [tt]oneSamplePerStep[/tt]. That could be obvious from the name, but not quite, and indeed, such an output is supposed to be returned by [tt]process[/tt] for each frame. In that case, it would seem that the host only reads the last computed feature that was [tt]push_back[/tt]'ed in the corresponding [tt]FeatureList[/tt].
+
+Since that did not work, I figure I could try the [tt]VariableSampleRate[/tt] sample type: with that one, according to the documentation, one has to provide the [tt]timestamp[/tt] attribute for each [tt]Feature[/tt]. I did so, with something like:
+[code]
+  Feature f0salienceFeat;
+  ...
+  f0salienceFeat.hasTimestamp = true;
+  f0salienceFeat.timestamp = timestamp 
+    - Vamp::RealTime::frame2RealTime((m_numberFrames-1-nf)*m_stepSize,
+                                     lrintf(m_inputSampleRate));
+[/code]
+
+With this, however, for some reason, the output was not rendered as an image in SV anymore, but rather as a sequence of values. Well, all in all, not what was desired.
+
+I might have tried more things, here and there, but let's jump to the solution I got from the NNLSchroma plug-in. The sample type of [tt]OutputDescriptor[/tt] needs to be declared as [tt]FixedSampleRate[/tt]. The code above therefore needs to be modified as:
+[code]
+  d.sampleType = OutputDescriptor::FixedSampleRate;
+  d.sampleRate = (m_stepSize == 0)? 
+    m_inputSampleRate / 2048 : 
+    m_inputSampleRate / m_stepSize; 
+[/code]
+
+Furthermore, I added the output feature set as a member [tt]m_featureSet[/tt] of the class. This way, in my [tt]process[/tt] method, I can run my NMF algorithm every [tt]m_numberFrames[/tt] frames, then add ([tt]push_back[/tt]) the generated features to the current [tt]m_featureSet[/tt]. 
+[code]
+  Feature f0salienceFeat;
+  // put interesting stuff in f0salienceFeat
+  ...
+  // assuming the desired output is the first one:
+  m_featureSet[0].push_back(f0salienceFeat);
+[/code]
+
+Method [tt]process[/tt] should return any feature set you'd like, but not containing the f0 salience feature. Well, actually, what worked for me was to simply output an empty feature set:
+[code]
+  return FeatureSet();
+[/code]
+
+At last, [tt]m_featureSet[/tt] is returned by method [tt]getRemainingFrames[/tt]: 
+[code]return m_featureSet;[/code]
+
+With this, I am now able to compute features and output them with the correct timing, resulting in an image in SV, well synchronized with the audio.
+
+Summary
+=======
+As a summary, I could say from this experience that I learned the following:
+  * About the sample types for the [tt]SampleType[/tt] attribute of the output descriptor:
+    - [tt]OneSamplePerStep[/tt] means that the feature that is returned by [tt]process[/tt] is used for the current frame only. No time stamp information can correct that. For example, this can be used for a plug-in computing a power spectrum, which does only require data from the current frame. It can also be used if we use information from previous frames, but not if we desire to use data from following ones. 
+    - [tt]VariableSampleRate[/tt] is appropriate for detection tasks, but does not seem designed to deal with visualisation plug-ins. It is good if one computes an onset detection: even if we require to use the whole signal's data, we could still return the feature at any time, and it will be aligned with the correct frame (this is more a guess, as I did not check more: would it for example still work as expected if the plug-in returns features in non-chronological order?).
+    - [tt]FixedSampleRate[/tt] means that the host will take the features in the feature list in the given order, and assume that they are aligned at fixed time stamps, whose relation is given by the [tt]SampleRate[/tt] attribute. This is suitable for NMF algorithms which need to compute several frames at once, potentially needing frame from the past and frames from the future of the current frame in [tt]process[/tt]. Processing the data at some other rate (every 1000 frames, for instance), the feature set can be returned at the end by the [tt]getRemainingFrames[/tt] method.
