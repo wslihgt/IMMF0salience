@@ -134,7 +134,7 @@ F0Salience::getPreferredBlockSize() const
 size_t 
 F0Salience::getPreferredStepSize() const
 {
-  return 1024; // 0 means "anything sensible"; in practice this
+  return 256; // 0 means "anything sensible"; in practice this
               // means the same as the block size for TimeDomain
               // plugins, or half of it for FrequencyDomain plugins
 }
@@ -462,7 +462,8 @@ F0Salience::getOutputDescriptors() const
   specEnv.binNames = freqNames;
   specEnv.hasKnownExtents = false;
   specEnv.isQuantized = false;
-  specEnv.sampleType = OutputDescriptor::OneSamplePerStep;//VariableSampleRate;//
+  specEnv.sampleType = OutputDescriptor::FixedSampleRate;//VariableSampleRate;//
+  specEnv.sampleRate = d.sampleRate;
   specEnv.hasDuration = false;
   list.push_back(specEnv);
   
@@ -910,7 +911,7 @@ F0Salience::updateHmatrices()
   float *sF0Hat, *sPhiHat, *tmpNum, *tmpDen, 
     *numeraHF0, *denomiHF0, *numeraHG, *denomiHG, *maxGamma;
 
-  size_t nbMus=1;
+  size_t nbMus=3;
   float *WM, *HM, *sM; // accompaniment part
   float *numHM, *denHM, *numWM, *denWM;
   float sumWM;
@@ -1167,6 +1168,35 @@ F0Salience::updateHmatrices()
 		max(denHM[f*m_numberFrames+n], eps);
 	    }
 	}
+      /* sF0Hat = m_HF0 m_WF0 (matrix product) */
+      cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
+		  m_numberFrames, m_numberBins, nbMus, 1.0,
+		  HM, nbMus, WM, m_numberBins, 0.0, 
+		  sM, m_numberBins);
+      
+      for (n=0; n<m_numberFrames; n++)
+	{
+	  for(f=0; f<m_numberBins; f++)
+	    {
+	      
+	      sXHat[n*m_numberBins+f] = (sPhiHat[n*m_numberBins+f] * 
+					 sF0Hat[n*m_numberBins+f] + 
+					 sM[n*m_numberBins+f]);
+	      
+	      // note: tmpM matrices are F x N 
+	      // and not N x F (like m_SX):
+	      // this helps for sgemm.
+	      tmpNum[f*m_numberFrames+n] = 
+		m_SX[n*m_numberBins+f] / 
+		max(sXHat[n*m_numberBins+f] * sXHat[n*m_numberBins+f], 
+		    eps);
+	      
+	      tmpDen[f*m_numberFrames+n] = 
+		1 / 
+		max(sXHat[n*m_numberBins+f], eps);
+	    }
+	}
+
       // computing the num and denom for the update
       cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 
 		  m_numberBins, nbMus, m_numberFrames, 1.0,
@@ -1224,6 +1254,17 @@ F0Salience::updateHmatrices()
 F0Salience::FeatureSet
 F0Salience::process(const float *const *inputBuffers, 
 		    Vamp::RealTime timestamp)
+/*
+  In process:
+  1) store the data (for each frame, keep power spectrum)
+  2) when there are m_numberFrames stored
+      a) run the update of the matrices
+      b) store the result in the FeatureSet m_featureSet
+  3) when there are no more frames, if there are still some to 
+  be computed, then finish them in GetRemainingFrames.
+  4) Return m_featureSet
+
+*/
 {
   size_t f, nn, nch, nf;
   // FeatureSet fs;
@@ -1292,17 +1333,6 @@ F0Salience::process(const float *const *inputBuffers,
   
   if(m_nbAccumulatedFrames == m_numberFrames)
     { 
-      // DEBUG
-//       cout << "POWER SPECTRUM MATRIX" <<endl;
-//       for (nn=0; nn<m_numberBins; nn++)
-// 	{
-// 	  for(nf=0; nf<m_numberFrames; nf++)
-// 	    {
-// 	      cout << m_SX[nf * m_numberBins + nn] << " " ;
-// 	    }
-// 	  cout << endl;
-// 	}
-//       cout << "END POWER SPEC" <<endl ; 
       // Compute the decomposition when the matrix is full:
       // initializing:
       if (sumOfFramePower > 0.0)
@@ -1390,6 +1420,72 @@ F0Salience::process(const float *const *inputBuffers,
 F0Salience::FeatureSet
 F0Salience::getRemainingFeatures()
 {
+  size_t nn, nf, f;
+  if (m_nbAccumulatedFrames != 0) // last few frames were not processed, in that case
+    {
+      m_numberFrames = m_nbAccumulatedFrames;
+      // Compute the decomposition when the matrix is full:
+      
+      float frameIsNotNull = 1.0;
+      
+      // cout << "initializing H matrices:" << endl;
+      for(nf=0; nf<m_numberFrames; nf++)
+	{
+	  for(nn=0; nn<m_numberOfGamma; nn++)
+	    {
+	      m_HGAMMA[nf*m_numberOfGamma + nn] = 1.0 * frameIsNotNull; // 0 if frame is null
+	    }
+	  for(nn=0; nn<m_numberOfF0; nn++)
+	    {
+	      m_HF0[nf*m_numberOfF0 + nn] = 1.0 * frameIsNotNull;
+	    }
+	}
+      
+      // make the calculations:
+      // cout << "updating H matrices:" << endl;
+      updateHmatrices();
+  
+      // fill in the features:
+      float *sPhiHat;
+      sPhiHat = new float [m_numberFrames * m_numberBins];
+      /* sPhiHat = m_HGAMMA m_WGAMMA*/
+      cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
+		  m_numberFrames, m_numberBins, m_numberOfGamma, 1.0,
+		  m_HGAMMA, m_numberOfGamma, m_WGAMMA, m_numberBins, 0.0,
+		  sPhiHat, m_numberBins);
+  
+      for (nf=0; nf<m_numberFrames; nf++)
+	{
+	  Feature f0salienceFeat;
+	  f0salienceFeat.hasTimestamp = false;
+	  f0salienceFeat.values.reserve(m_numberOfF0);
+	  
+	  // float maxInHF0 = *max_element(m_HF0,m_HF0+m_numberOfF0);
+	  float targetMinInHF0 = 0.; // DEBUG // invdb((db(maxInHF0)-m_thresholdEnergy));
+	  
+	  for(nn=0; nn<m_numberOfF0; nn++) 
+	    // we do not return the last bin: noise energy 
+	    // (TODO: include it as another output descriptor)
+	    {
+	      f0salienceFeat.values.push_back(max(
+                  m_HF0[nf*m_numberOfF0 + nn], 
+		  targetMinInHF0));
+	    }
+	  
+	  m_featureSet[0].push_back(f0salienceFeat);
+	  
+	  Feature envelopeFeat;
+	  envelopeFeat.hasTimestamp = false;
+	  envelopeFeat.values.reserve(m_numberBins);
+	  for(f=0; f<m_numberBins; f++)
+	    {
+	      envelopeFeat.values.push_back(
+                  sPhiHat[nf*m_numberBins + f]);
+	    }
+	  m_featureSet[1].push_back(envelopeFeat);
+	}
+    } 
+
   return m_featureSet;
 }
 
