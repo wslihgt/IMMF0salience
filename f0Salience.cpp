@@ -30,7 +30,7 @@
 // TODO: some differences between these versions and matrices directly 
 // computed may be seen - this should be fixed, if one finds the time
 // to do so...
-#include "wf0_50_600_16000_512_16_05.h"
+#include "precalc/wf0_50_600_16000_512_16_05.h"
 #include "wf0_50_600_44100_2048_16_05.h" 
 #include "wf0_100_800_44100_2048_8_05.h" 
 #include "wf0_100_800_16000_2048_16_05.h"
@@ -606,7 +606,9 @@ F0Salience::genBaseWF0(float Fm, float FM, float inputSamplingRate,
       // cout << "Total number in WF0 should be 177330, is ";
       // cout << N_notes*Nf << endl;
       cout << "Loading from pre-computed Matrices" << endl;
-      for(ff=0;ff<N_notes-1;ff++)
+      writeWF0_50_600_16000_512_16_05(f0Table, WF0, (int) N_notes);
+      /*
+	for(ff=0;ff<N_notes-1;ff++)
 	{
 	  f0Table[ff] = F0Table_50_600_16000_512_16_05[ff];
 	  for(F=0;F<Nf;F++)
@@ -614,7 +616,7 @@ F0Salience::genBaseWF0(float Fm, float FM, float inputSamplingRate,
 	      WF0[ff*Nf+F] = WF0_50_600_16000_512_16_05[ff*Nf+F] + eps;
 	    }
 	}
-      
+      */
       // last element actually noise:
       for(F=0;F<Nf;F++)
 	{
